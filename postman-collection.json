@@ -1,0 +1,475 @@
+{
+  "info": {
+    "_postman_id": "agt-facturacao-api-collection",
+    "name": "AGT Facturação API",
+    "description": "API Proxy para a Facturação Electrónica da AGT (Angola)\n\n**Autenticação**: Todas as rotas requerem o header `x-api-key` com a chave de API definida no .env\n\n**Base URL**: http://localhost:3000/api (desenvolvimento) ou https://seu-dominio.com/api (produção)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "12345678"
+  },
+  "item": [
+    {
+      "name": "Sistema",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status é 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response é JSON válido\", function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "pm.test(\"Status é OK\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.status).to.eql(\"ok\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Verificação de estado do serviço (sem autenticação)\n\n✅ **Público** - não requer x-api-key"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "NIF",
+      "item": [
+        {
+          "name": "Consultar NIF",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Certifique-se de que a variável de ambiente 'x-api-key' está configurada"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status é 200 ou 400\", function () {",
+                  "    pm.expect([200, 400]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "pm.test(\"Response é JSON válido\", function () {",
+                  "    pm.response.to.be.json;",
+                  "});",
+                  "",
+                  "var jsonData = pm.response.json();",
+                  "",
+                  "pm.test(\"Response contém campo 'success'\", function () {",
+                  "    pm.expect(jsonData).to.have.property('success');",
+                  "});",
+                  "",
+                  "if (jsonData.success) {",
+                  "    pm.test(\"NIF encontrado\", function () {",
+                  "        pm.expect(jsonData).to.have.property('nif');",
+                  "    });",
+                  "} else {",
+                  "    pm.test(\"Mensagem de erro presente\", function () {",
+                  "        pm.expect(jsonData).to.have.property('error');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/nif?numeroDocumento=5417663700&tipoDocumento=BI",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "nif"
+              ],
+              "query": [
+                {
+                  "key": "numeroDocumento",
+                  "value": "5417663700",
+                  "description": "Número do documento de identificação (obrigatório)"
+                },
+                {
+                  "key": "tipoDocumento",
+                  "value": "BI",
+                  "description": "Tipo de documento: BI (Bilhete de Identidade), PP (Passaporte), etc. (opcional, padrão: BI)"
+                }
+              ]
+            },
+            "description": "Consulta o NIF de um contribuinte junto da AGT/SIFT\n\n**Autenticação**: Requer header `x-api-key`\n\n**Parâmetros de Query**:\n- `numeroDocumento` (obrigatório): Número do documento de identificação\n- `tipoDocumento` (opcional): Tipo de documento (padrão: BI)\n\n**Resposta de Sucesso (200)**:\n```json\n{\n  \"success\": true,\n  \"nif\": \"1234567890\",\n  \"contribuinte\": { ... },\n  \"rawResponse\": { ... }\n}\n```\n\n**Resposta de Erro (400/404)**:\n```json\n{\n  \"success\": false,\n  \"error\": \"NIF não encontrado ou documento inválido\",\n  \"statusCode\": 404\n}\n```"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Séries",
+      "item": [
+        {
+          "name": "Solicitar Série",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tax_id\": \"1234567890\",\n  \"private_key\": \"-----BEGIN RSA PRIVATE KEY-----\\n...\",\n  \"requestID\": \"REQ-2024-001\",\n  \"software_id\": \"0000\",\n  \"test\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/series",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "series"
+              ]
+            },
+            "description": "Solicita uma nova série de factura junto da AGT\n\n**Autenticação**: Requer header `x-api-key`"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Faturas",
+      "item": [
+        {
+          "name": "Registar Factura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tax_id\": \"1234567890\",\n  \"private_key\": \"-----BEGIN RSA PRIVATE KEY-----\\n...\",\n  \"document_type\": \"FT\",\n  \"serie\": \"FT 2024/001\",\n  \"document_number\": \"00001\",\n  \"date\": \"2024-09-16\",\n  \"customer_name\": \"Cliente Exemplo\",\n  \"customer_tax_id\": \"9876543210\",\n  \"lines\": [\n    {\n      \"description\": \"Produto/Serviço\",\n      \"quantity\": 1,\n      \"unit_price\": 1000.00,\n      \"tax_rate\": 14\n    }\n  ],\n  \"total_gross\": 1000.00,\n  \"total_tax\": 140.00,\n  \"total_net\": 1140.00,\n  \"test\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/faturas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "faturas"
+              ]
+            },
+            "description": "Regista um novo documento (FT, FR, NC, ND ou RC) na AGT\n\n**Autenticação**: Requer header `x-api-key`\n\n**Document Types**:\n- `FT` - Factura\n- `FR` - Factura-Recibo\n- `NC` - Nota de Crédito\n- `ND` - Nota de Débito\n- `RC` - Recibo de Cliente"
+          },
+          "response": []
+        },
+        {
+          "name": "Registar Nota de Crédito",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tax_id\": \"1234567890\",\n  \"private_key\": \"-----BEGIN RSA PRIVATE KEY-----\\n...\",\n  \"reference\": \"FT 2024/001 00001\",\n  \"reason\": \"Devolução de mercadoria\",\n  \"lines\": [\n    {\n      \"description\": \"Produto/Serviço\",\n      \"quantity\": 1,\n      \"debit_amount\": 100.00,\n      \"tax_rate\": 14\n    }\n  ],\n  \"test\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/faturas/nota-credito",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "faturas",
+                "nota-credito"
+              ]
+            },
+            "description": "Atalho dedicado para registar uma Nota de Crédito (NC)\n\n**Autenticação**: Requer header `x-api-key`\n\n**Observações**:\n- `document_type` é forçado a \"NC\" pelo servidor\n- \"reference\" (nº do documento original) e \"reason\" são obrigatórios\n- As linhas usam `debit_amount` em vez de `credit_amount`"
+          },
+          "response": []
+        },
+        {
+          "name": "Registar Nota de Débito",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tax_id\": \"1234567890\",\n  \"private_key\": \"-----BEGIN RSA PRIVATE KEY-----\\n...\",\n  \"reference\": \"FT 2024/001 00001\",\n  \"reason\": \"Cobro de juros\",\n  \"lines\": [\n    {\n      \"description\": \"Juros\",\n      \"quantity\": 1,\n      \"credit_amount\": 50.00,\n      \"tax_rate\": 14\n    }\n  ],\n  \"test\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/faturas/nota-debito",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "faturas",
+                "nota-debito"
+              ]
+            },
+            "description": "Atalho dedicado para registar uma Nota de Débito (ND)\n\n**Autenticação**: Requer header `x-api-key`\n\n**Observações**:\n- `document_type` é forçado a \"ND\" pelo servidor"
+          },
+          "response": []
+        },
+        {
+          "name": "Anular Documento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tax_id\": \"1234567890\",\n  \"private_key\": \"-----BEGIN RSA PRIVATE KEY-----\\n...\",\n  \"document_type\": \"FT\",\n  \"rejected_document_no\": \"FT 2024/001 00001\",\n  \"document_cancel_reason\": \"Erro de emissão\",\n  \"document_status\": \"A\",\n  \"test\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/faturas/anular",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "faturas",
+                "anular"
+              ]
+            },
+            "description": "Anula um documento já submetido\n\n**Autenticação**: Requer header `x-api-key`\n\n**Observações**:\n- Reenvia o documento original (mesmo document_type, mesmas lines/totais)\n- Marca com `document_status = \"A\"` (forçado pelo servidor)\n- Exige `rejected_document_no` e `document_cancel_reason`"
+          },
+          "response": []
+        },
+        {
+          "name": "Corrigir Documento",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tax_id\": \"1234567890\",\n  \"private_key\": \"-----BEGIN RSA PRIVATE KEY-----\\n...\",\n  \"document_type\": \"FT\",\n  \"rejected_document_no\": \"FT 2024/001 00001\",\n  \"document_cancel_reason\": \"Correcção de valores\",\n  \"document_status\": \"R\",\n  \"lines\": [\n    {\n      \"description\": \"Produto/Serviço\",\n      \"quantity\": 1,\n      \"unit_price\": 950.00,\n      \"tax_rate\": 14\n    }\n  ],\n  \"total_gross\": 950.00,\n  \"total_tax\": 133.00,\n  \"total_net\": 1083.00,\n  \"test\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/faturas/corrigir",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "faturas",
+                "corrigir"
+              ]
+            },
+            "description": "Regista a correcção de um documento já submetido\n\n**Autenticação**: Requer header `x-api-key`\n\n**Observações**:\n- Reenvia o documento com os valores corrigidos\n- Referencia o original via `rejected_document_no` e `document_cancel_reason`\n- `document_status` usa `CORRECTION_DOCUMENT_STATUS` (padrão \"R\") a menos que seja fornecido no pedido"
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar Estado de Factura",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tax_id\": \"1234567890\",\n  \"private_key\": \"-----BEGIN RSA PRIVATE KEY-----\\n...\",\n  \"requestID\": \"REQ-2024-001\",\n  \"username\": \"seu_username\",\n  \"password\": \"sua_password\",\n  \"test\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/faturas/estado",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "faturas",
+                "estado"
+              ]
+            },
+            "description": "Consulta o estado de uma factura já submetida\n\n**Autenticação**: Requer header `x-api-key`\n\n**Observações**:\n- É POST (não GET) porque o pedido leva a chave privada para assinar a consulta\n- Não é seguro pôr a chave privada num query string\n- `requestID` referencia o documento a consultar"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Logs",
+      "item": [
+        {
+          "name": "Listar Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-api-key",
+                "value": "{{api_key}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/logs?limit=50&offset=0",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Número máximo de logs a retornar"
+                },
+                {
+                  "key": "offset",
+                  "value": "0",
+                  "description": "Deslocamento para paginação"
+                },
+                {
+                  "key": "request_id",
+                  "value": "",
+                  "description": "Filtrar por request ID (opcional)",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "Filtrar por status: success, error (opcional)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lista os logs de pedidos processados\n\n**Autenticação**: Requer header `x-api-key`\n\n**Query Parameters**:\n- `limit`: Número máximo de registos (padrão: 50)\n- `offset`: Deslocamento para paginação (padrão: 0)\n- `request_id`: Filtrar por request ID (opcional)\n- `status`: Filtrar por status success/error (opcional)"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Certifique-se de que as variáveis globais estão configuradas:",
+          "// - base_url: http://localhost:3000/api",
+          "// - api_key: sua_chave_api_aqui"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": []
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000/api",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "sua_chave_api_aqui",
+      "type": "string"
+    }
+  ]
+}
